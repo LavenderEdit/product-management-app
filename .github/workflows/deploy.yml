@@ -1,0 +1,57 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: ["main"]
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Crear archivo env.js dinámicamente
+        run: |
+          echo "Generando configuración de entorno..."
+
+          # Creamos el archivo js/env.js
+          echo "window.__ENV__ = {" > js/env.js
+
+          # Inyectamos la variable API_URL desde tus Secretos/Variables de GitHub
+          # Asegúrate que en GitHub se llame 'API_URL' o cambia el nombre aquí
+          echo "  API_URL: '${{ secrets.API_URL }}'," >> js/env.js
+
+          # Opcional: Si tienes el nombre de la app como variable
+          echo "  APP_NAME: 'Kardex Pro (Producción)'" >> js/env.js
+
+          echo "};" >> js/env.js
+
+          # Verificamos que se creó (sin mostrar el contenido por seguridad)
+          ls -l js/env.js
+
+      - name: Configurar GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Subir artefacto (archivos web)
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "."
+
+      - name: Desplegar en GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
