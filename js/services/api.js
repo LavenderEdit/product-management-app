@@ -4,7 +4,11 @@ import { UI } from '../components/ui.js';
 export const API = {
     async request(endpoint, method = 'GET', body = null) {
         try {
-            const headers = { 'Content-Type': 'application/json' };
+            const headers = {
+                'Content-Type': 'application/json',
+                'ngrok-skip-browser-warning': 'true',
+                'User-Agent': 'KardexApp/1.0'
+            };
             const config = { method, headers };
 
             if (body) config.body = JSON.stringify(body);
