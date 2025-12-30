@@ -1,7 +1,7 @@
 import { API } from './services/api.js';
 import { Store } from './state/store.js';
 import { UI } from './components/ui.js';
-import { renderInventory } from './components/inventory.js';
+import { renderInventory, generateProductCards } from './components/inventory.js';
 import { renderAddForm } from './components/form.js';
 import { renderDetails, renderModal } from './components/details.js';
 
@@ -25,7 +25,6 @@ class AppController {
             UI.showToast('No se pudo conectar al servidor', 'error');
             this.router('inventory');
         }
-
         lucide.createIcons();
     }
 
@@ -50,6 +49,14 @@ class AppController {
         this.appRoot.innerHTML = html;
         lucide.createIcons();
         window.scrollTo(0, 0);
+
+        if (view === 'inventory' && Store.state.filterTerm) {
+            const input = document.getElementById('search-input');
+            if (input) {
+                input.value = Store.state.filterTerm;
+                input.focus();
+            }
+        }
     }
 
     navigate(view) {
@@ -58,11 +65,17 @@ class AppController {
 
     handleSearch(term) {
         Store.setFilter(term);
-        this.router('inventory');
-        const input = document.querySelector('input[type="text"]');
-        if (input) {
-            input.focus();
-            input.value = term;
+
+        const filteredItems = Store.getProducts();
+
+        const listHtml = generateProductCards(filteredItems);
+
+        const container = document.getElementById('product-list-container');
+        if (container) {
+            container.innerHTML = listHtml;
+            lucide.createIcons();
+        } else {
+            this.router('inventory');
         }
     }
 
@@ -90,7 +103,6 @@ class AppController {
         if (result) {
             const allProducts = await API.get('/products');
             Store.setProducts(allProducts);
-
             UI.showToast('Producto creado correctamente');
             this.router('inventory');
         }
@@ -131,12 +143,58 @@ class AppController {
 
         if (result) {
             document.getElementById('transaction-modal').remove();
-
             Store.updateProductInList(result);
-
             UI.showToast(`Transacción exitosa (${type})`);
             this.router('details');
         }
+    }
+
+    async downloadExcel() {
+        UI.showLoading(true);
+        try {
+            const data = await API.get('/reports/excel-data');
+
+            if (!data || data.length === 0) {
+                UI.showToast('No hay datos para exportar', 'error');
+                UI.showLoading(false);
+                return;
+            }
+
+            const headers = Object.keys(data[0]);
+
+            const csvRows = [];
+
+            csvRows.push(headers.join(','));
+
+            for (const row of data) {
+                const values = headers.map(header => {
+                    const escaped = ('' + row[header]).replace(/"/g, '\\"');
+                    return `"${escaped}"`;
+                });
+                csvRows.push(values.join(','));
+            }
+
+            const csvString = csvRows.join('\n');
+
+            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            const date = new Date().toISOString().slice(0, 10);
+            link.setAttribute('download', `Kardex_Reporte_${date}.csv`);
+            link.style.visibility = 'hidden';
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            UI.showToast('Reporte descargado correctamente');
+
+        } catch (error) {
+            console.error(error);
+            UI.showToast('Error al descargar reporte', 'error');
+        }
+        UI.showLoading(false);
     }
 }
 
