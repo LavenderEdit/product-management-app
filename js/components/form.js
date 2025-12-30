@@ -42,6 +42,7 @@ export function renderAddForm() {
                             <option value="PAQ">PAQ</option>
                             <option value="KG">KG</option>
                             <option value="LT">LT</option>
+                            <option value="BG">BG</option>
                         </select>
                     </div>
                 </div>
