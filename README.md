@@ -20,20 +20,29 @@ Aplicación web progresiva (PWA-ready) para la gestión de inventarios, diseñad
 ## 📸 Galería y Demostración
 
 1. **Vista Principal (Inventario)**  
-   Visualiza todos tus productos, el estado del stock y estadísticas rápidas.  
-   <!-- Coloca aquí la foto: image_4b5123.png -->
+   Visualiza todos tus productos, el estado del stock y estadísticas rápidas.
+   <p align="center">
+    <img src="https://drive.google.com/uc?export=view&id=1rNZVTolvkNJRPDDrXH_nwNzOj7lZfEgN" width="600" alt="Imagen 1">
+   </p>
 
-2. **Detalle del Producto**  
-   Información profunda del producto y botones de acción rápida para movimientos.  
-   <!-- Coloca aquí la foto: image_4b511f.png -->
+3. **Detalle del Producto**  
+   Información profunda del producto y botones de acción rápida para movimientos.
+   <p align="center">
+    <img src="https://drive.google.com/uc?export=view&id=1kUytE_9YArYlj8HuG6sQ5hQ4YNwkP3Id" width="600" alt="Imagen 2">
+   </p>
 
-3. **Registro de Movimientos**  
-   Modal intuitivo para registrar entradas o salidas de stock.  
-   <!-- Coloca aquí la foto: image_4b5125.png -->
+5. **Registro de Movimientos**  
+   Modal intuitivo para registrar entradas o salidas de stock.
+   <p align="center">
+    <img src="https://drive.google.com/uc?export=view&id=1GAXhg1OX6p7GIGrwzsV6guIYOeURhgjU" width="600" alt="Imagen 3">
+    <img src="https://drive.google.com/uc?export=view&id=19hEISaOnNdfLHoRj5edVcv0f2CzybiyV" width="600" alt="Imagen 4">
+   </p>
 
-4. **Creación de Productos**  
-   Formulario optimizado para añadir nuevas referencias al catálogo.  
-   <!-- Coloca aquí la foto: image_4b53ca.png -->
+7. **Creación de Productos**  
+   Formulario optimizado para añadir nuevas referencias al catálogo.
+   <p align="center">
+    <img src="https://drive.google.com/uc?export=view&id=1FJZj6XH5ovOiVqsatUd4h_FX1gNNI4Di" width="600" alt="Imagen 5">
+   </p>
 
 ## 🚀 Tecnologías
 
