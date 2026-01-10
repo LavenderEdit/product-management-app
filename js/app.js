@@ -8,6 +8,8 @@ import { renderDetails, renderModal } from './components/details.js';
 class AppController {
     constructor() {
         this.appRoot = document.getElementById('app-root');
+        this.searchTimeout = null;
+        this.cachedPersonnel = [];
         this.init();
     }
 
@@ -41,6 +43,9 @@ class AppController {
                 break;
             case 'details':
                 html = renderDetails();
+                if (Store.state.selectedProduct) {
+                    this.loadMovements(Store.state.selectedProduct.id);
+                }
                 break;
             default:
                 html = renderInventory();
@@ -59,17 +64,30 @@ class AppController {
         }
     }
 
+    async loadMovements(productId) {
+        const container = document.getElementById('movements-container');
+        if (!container) return;
+
+        container.innerHTML = '<div class="text-center py-4"><div class="animate-spin rounded-full h-6 w-6 border-2 border-blue-500 border-t-transparent mx-auto"></div></div>';
+
+        const movements = await API.get(`/products/${productId}/movements`);
+
+        if (movements) {
+            container.innerHTML = renderMovementsList(movements);
+            lucide.createIcons();
+        } else {
+            container.innerHTML = '<p class="text-center text-gray-400 text-sm py-4">No se pudo cargar el historial.</p>';
+        }
+    }
+
     navigate(view) {
         this.router(view);
     }
 
     handleSearch(term) {
         Store.setFilter(term);
-
         const filteredItems = Store.getProducts();
-
         const listHtml = generateProductCards(filteredItems);
-
         const container = document.getElementById('product-list-container');
         if (container) {
             container.innerHTML = listHtml;
@@ -123,28 +141,75 @@ class AppController {
         }
     }
 
-    async handleTransaction(event, type) {
-        event.preventDefault();
-        const formData = new FormData(event.target);
-        const qty = parseInt(formData.get('quantity'));
-        const reason = formData.get('reason');
-        const product = Store.state.selectedProduct;
+    async handlePersonnelSearch(input) {
+        const query = input.value;
+        const datalist = document.getElementById('personnel-suggestions');
 
-        if (type === 'OUT' && product.stock < qty) {
-            UI.showToast('Stock insuficiente', 'error');
+        const selectedPerson = this.cachedPersonnel.find(p => p.name === query);
+        if (selectedPerson) {
+            const roleInput = document.getElementById('receiver-role');
+            if (roleInput && !roleInput.value) {
+                roleInput.value = selectedPerson.role;
+                roleInput.classList.add('bg-blue-50', 'text-blue-700');
+                setTimeout(() => roleInput.classList.remove('bg-blue-50', 'text-blue-700'), 1000);
+            }
             return;
         }
 
+        if (query.length < 2) return;
+
+        clearTimeout(this.searchTimeout);
+        this.searchTimeout = setTimeout(async () => {
+            const results = await API.get(`/personnel/search?query=${query}`);
+
+            if (results) {
+                this.cachedPersonnel = results;
+                datalist.innerHTML = results.map(person =>
+                    `<option value="${person.name}">${person.role}</option>`
+                ).join('');
+            }
+        }, 300);
+    }
+
+    async handleTransaction(event, type) {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        const product = Store.state.selectedProduct;
+        const qty = parseInt(formData.get('quantity'));
+
+        if (type === 'OUT') {
+            if (product.stock < qty) {
+                UI.showToast('Stock insuficiente', 'error');
+                return;
+            }
+            const role = formData.get('receiverRole');
+            if (!role || role.trim() === '') {
+                UI.showToast('El cargo es obligatorio para salidas', 'error');
+                return;
+            }
+        }
+
+        const payload = {
+            type: type,
+            quantity: qty,
+            reason: formData.get('reason'),
+            receiverName: formData.get('receiverName') || null,
+            receiverRole: formData.get('receiverRole') || null
+        };
+
         UI.showLoading(true);
-        const query = new URLSearchParams({ type, qty, reason }).toString();
-        const result = await API.put(`/products/${product.id}/movement?${query}`);
+
+        const result = await API.post(`/products/${product.id}/movement`, payload);
 
         UI.showLoading(false);
 
         if (result) {
-            document.getElementById('transaction-modal').remove();
+            const modal = document.getElementById('transaction-modal');
+            if (modal) modal.remove();
+
             Store.updateProductInList(result);
             UI.showToast(`Transacción exitosa (${type})`);
+
             this.router('details');
         }
     }
@@ -161,9 +226,7 @@ class AppController {
             }
 
             const headers = Object.keys(data[0]);
-
             const csvRows = [];
-
             csvRows.push(headers.join(','));
 
             for (const row of data) {
@@ -175,7 +238,6 @@ class AppController {
             }
 
             const csvString = csvRows.join('\n');
-
             const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
