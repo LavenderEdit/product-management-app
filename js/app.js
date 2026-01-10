@@ -4,6 +4,7 @@ import { UI } from './components/ui.js';
 import { renderInventory, generateProductCards } from './components/inventory.js';
 import { renderAddForm } from './components/form.js';
 import { renderDetails, renderModal, renderMovementsList } from './components/details.js';
+import { renderGlobalMovements } from './components/movements.js';
 
 class AppController {
     constructor() {
@@ -30,7 +31,7 @@ class AppController {
         lucide.createIcons();
     }
 
-    router(view) {
+    async router(view) {
         Store.state.currentView = view;
         let html = '';
 
@@ -44,11 +45,21 @@ class AppController {
             case 'details':
                 html = renderDetails();
                 break;
+            case 'movements':
+                this.appRoot.innerHTML = '<div class="min-h-screen flex items-center justify-center"><div class="animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div></div>';
+                const movementsData = await API.get('/reports/movements-data');
+                html = renderGlobalMovements(movementsData);
+                break;
             default:
                 html = renderInventory();
         }
 
-        this.appRoot.innerHTML = html;
+        if (view !== 'movements') {
+            this.appRoot.innerHTML = html;
+        } else {
+            this.appRoot.innerHTML = html;
+        }
+
         lucide.createIcons();
         window.scrollTo(0, 0);
 
@@ -218,44 +229,62 @@ class AppController {
     async downloadExcel() {
         UI.showLoading(true);
         try {
-            const data = await API.get('/reports/excel-data');
+            const productsData = await API.get('/reports/excel-data');
+            const movementsData = await API.get('/reports/movements-data');
 
-            if (!data || data.length === 0) {
+            if ((!productsData || productsData.length === 0) && (!movementsData || movementsData.length === 0)) {
                 UI.showToast('No hay datos para exportar', 'error');
                 UI.showLoading(false);
                 return;
             }
 
-            const headers = Object.keys(data[0]);
-            const csvRows = [];
-            csvRows.push(headers.join(','));
+            const workbook = XLSX.utils.book_new();
 
-            for (const row of data) {
-                const values = headers.map(header => {
-                    const escaped = ('' + row[header]).replace(/"/g, '\\"');
-                    return `"${escaped}"`;
-                });
-                csvRows.push(values.join(','));
+            if (productsData && productsData.length > 0) {
+                const niceProducts = productsData.map(p => ({
+                    "Código": p.codigoBarras,
+                    "Producto": p.producto,
+                    "Categoría": p.categoria,
+                    "Unidad": p.unidad,
+                    "Stock Actual": p.cantidadActual,
+                    "Estado": p.estadoInventario,
+                    "Última Actualización": p.fechaUltimoMovimiento
+                }));
+                const worksheet1 = XLSX.utils.json_to_sheet(niceProducts);
+
+                const wscols1 = [{ wch: 10 }, { wch: 25 }, { wch: 15 }, { wch: 10 }, { wch: 10 }, { wch: 15 }, { wch: 20 }];
+                worksheet1['!cols'] = wscols1;
+
+                XLSX.utils.book_append_sheet(workbook, worksheet1, "Inventario Actual");
             }
 
-            const csvString = csvRows.join('\n');
-            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.setAttribute('href', url);
+            if (movementsData && movementsData.length > 0) {
+                const niceMovements = movementsData.map(m => ({
+                    "Fecha": m.fechaHora,
+                    "Tipo": m.tipoMovimiento,
+                    "Cód. Producto": m.codigoProducto,
+                    "Producto": m.nombreProducto,
+                    "Cantidad": m.cantidad,
+                    "Motivo": m.motivo,
+                    "Responsable": m.responsableNombre,
+                    "Cargo": m.responsableCargo
+                }));
+                const worksheet2 = XLSX.utils.json_to_sheet(niceMovements);
+
+                const wscols2 = [{ wch: 18 }, { wch: 10 }, { wch: 10 }, { wch: 25 }, { wch: 8 }, { wch: 25 }, { wch: 20 }, { wch: 20 }];
+                worksheet2['!cols'] = wscols2;
+
+                XLSX.utils.book_append_sheet(workbook, worksheet2, "Historial Movimientos");
+            }
+
             const date = new Date().toISOString().slice(0, 10);
-            link.setAttribute('download', `Kardex_Reporte_${date}.csv`);
-            link.style.visibility = 'hidden';
+            XLSX.writeFile(workbook, `Reporte_Kardex_${date}.xlsx`);
 
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-
-            UI.showToast('Reporte descargado correctamente');
+            UI.showToast('Reporte Excel generado correctamente');
 
         } catch (error) {
-            console.error(error);
-            UI.showToast('Error al descargar reporte', 'error');
+            console.error("Error generando Excel:", error);
+            UI.showToast('Error al generar reporte', 'error');
         }
         UI.showLoading(false);
     }
