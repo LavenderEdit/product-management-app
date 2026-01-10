@@ -45,14 +45,13 @@ export function renderDetails() {
                 </button>
             </div>
 
-            <!-- NUEVA SECCIÓN: Historial de Movimientos -->
+            <!-- Historial de Movimientos -->
             <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
                     <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2">
                         <i data-lucide="history" class="w-4 h-4 text-gray-400"></i> Historial Reciente
                     </h3>
                 </div>
-                <!-- Aquí se inyectará la lista vía JavaScript -->
                 <div id="movements-container">
                     <div class="p-6 text-center text-gray-400 text-xs">Cargando movimientos...</div>
                 </div>
@@ -76,7 +75,23 @@ export function renderMovementsList(movements) {
         const isEntry = mov.type === 'IN';
         const colorClass = isEntry ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50';
         const icon = isEntry ? 'arrow-down-left' : 'arrow-up-right';
-        const date = new Date(mov.date).toLocaleString('es-PE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+        let dateDisplay = 'Fecha inválida';
+        try {
+            if (mov.date) {
+                const [datePart, timePart] = mov.date.split('T');
+                const [year, month, day] = datePart.split('-');
+                const time = timePart.substring(0, 5);
+
+                const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+                const monthName = months[parseInt(month) - 1];
+
+                dateDisplay = `${day} ${monthName}, ${time}`;
+            }
+        } catch (e) {
+            console.error("Error parseando fecha:", mov.date);
+            dateDisplay = mov.date;
+        }
 
         const personInfo = mov.receiverName
             ? `<div class="mt-1 text-[10px] text-gray-500 flex items-center gap-1">
@@ -97,7 +112,8 @@ export function renderMovementsList(movements) {
                             ${isEntry ? '+' : '-'}${mov.quantity}
                         </span>
                     </div>
-                    <p class="text-[10px] text-gray-400 mt-0.5 font-medium uppercase tracking-wide">${date}</p>
+                    <!-- Usamos la fecha formateada manualmente -->
+                    <p class="text-[10px] text-gray-400 mt-0.5 font-medium uppercase tracking-wide">${dateDisplay}</p>
                     ${personInfo}
                 </div>
             </div>
@@ -139,7 +155,7 @@ export function renderModal(type, productName) {
                         </div>
                     </div>
 
-                    <!-- Campos de Personal (AHORA VISIBLES PARA AMBOS) -->
+                    <!-- Campos de Personal -->
                     <div class="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-4">
                         <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wide">${personTitle}</h4>
                         
