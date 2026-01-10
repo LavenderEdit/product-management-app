@@ -3,7 +3,7 @@ import { Store } from './state/store.js';
 import { UI } from './components/ui.js';
 import { renderInventory, generateProductCards } from './components/inventory.js';
 import { renderAddForm } from './components/form.js';
-import { renderDetails, renderModal } from './components/details.js';
+import { renderDetails, renderModal, renderMovementsList } from './components/details.js';
 
 class AppController {
     constructor() {
@@ -43,9 +43,6 @@ class AppController {
                 break;
             case 'details':
                 html = renderDetails();
-                if (Store.state.selectedProduct) {
-                    this.loadMovements(Store.state.selectedProduct.id);
-                }
                 break;
             default:
                 html = renderInventory();
@@ -54,6 +51,10 @@ class AppController {
         this.appRoot.innerHTML = html;
         lucide.createIcons();
         window.scrollTo(0, 0);
+
+        if (view === 'details' && Store.state.selectedProduct) {
+            this.loadMovements(Store.state.selectedProduct.id);
+        }
 
         if (view === 'inventory' && Store.state.filterTerm) {
             const input = document.getElementById('search-input');
