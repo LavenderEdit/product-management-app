@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://studios-tkoh.azurewebsites.net/" target="_blank">
+  <a href="https://endearing-blini-6a6b91.netlify.app/" target="_blank">
     <img src="https://drive.google.com/uc?export=view&id=1TuT30CiBkinh85WuTvjKGKN47hCyCS0Z" width="300" alt="Studios TKOH Logo">
   </a>
 </p>
